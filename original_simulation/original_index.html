@@ -1,0 +1,667 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Lantern Simulation — Full Control Panel</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    :root {
+      --bg-deep: #020617;
+      --bg-panel: rgba(15, 23, 42, 0.92);
+      --bg-section: rgba(30, 41, 59, 0.5);
+      --border-subtle: rgba(148, 163, 184, 0.25);
+      --border-accent: rgba(99, 102, 241, 0.4);
+      --text-primary: #f1f5f9;
+      --text-secondary: #94a3b8;
+      --text-muted: #64748b;
+      --accent: #6366f1;
+      --accent-glow: rgba(99, 102, 241, 0.3);
+      --radius-sm: 8px;
+      --radius-md: 12px;
+      --radius-lg: 18px;
+      --font-sans: "DM Sans", system-ui, -apple-system, sans-serif;
+      --font-mono: "JetBrains Mono", ui-monospace, monospace;
+    }
+
+    html {
+      font-size: 14px;
+    }
+
+    body {
+      font-family: var(--font-sans);
+      background: radial-gradient(ellipse at top, #0f172a 0%, var(--bg-deep) 60%);
+      color: var(--text-primary);
+      min-height: 100vh;
+      padding: 1.5rem;
+      line-height: 1.5;
+    }
+
+    .page {
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    .hero {
+      display: grid;
+      grid-template-columns: 1fr 380px;
+      gap: 1.5rem;
+      min-height: calc(100vh - 3rem);
+    }
+
+    @media (max-width: 1100px) {
+      .hero {
+        grid-template-columns: 1fr;
+        grid-template-rows: minmax(320px, 50vh) auto;
+      }
+    }
+
+    .hero-media {
+      position: relative;
+      background: radial-gradient(ellipse at top, #1e293b 0%, var(--bg-deep) 100%);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      border: 1px solid var(--border-subtle);
+      box-shadow:
+        0 25px 60px -12px rgba(0, 0, 0, 0.6),
+        inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    }
+
+    .hero-sim-container {
+      position: absolute;
+      inset: 0;
+    }
+
+    .hero-controls-bar {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      padding: 0.75rem 1rem;
+      display: flex;
+      justify-content: flex-end;
+      pointer-events: none;
+    }
+
+    .hero-controls-bar button {
+      pointer-events: auto;
+      padding: 0.5rem 1rem;
+      border-radius: 999px;
+      border: 1px solid var(--border-subtle);
+      background: var(--bg-panel);
+      color: var(--text-primary);
+      font-family: var(--font-sans);
+      font-size: 0.85rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      backdrop-filter: blur(12px);
+    }
+
+    .hero-controls-bar button:hover {
+      background: var(--accent);
+      border-color: var(--accent);
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px var(--accent-glow);
+    }
+
+    .control-panel {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+      max-height: calc(100vh - 3rem);
+      overflow-y: auto;
+      padding-right: 0.5rem;
+      scrollbar-width: thin;
+      scrollbar-color: var(--border-subtle) transparent;
+    }
+
+    .control-panel::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    .control-panel::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    .control-panel::-webkit-scrollbar-thumb {
+      background: var(--border-subtle);
+      border-radius: 3px;
+    }
+
+    .panel-header {
+      padding: 1rem;
+      background: var(--bg-panel);
+      border-radius: var(--radius-md);
+      border: 1px solid var(--border-subtle);
+      backdrop-filter: blur(16px);
+    }
+
+    .panel-header h1 {
+      font-size: 1.1rem;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+      margin-bottom: 0.25rem;
+    }
+
+    .panel-header p {
+      font-size: 0.8rem;
+      color: var(--text-secondary);
+    }
+
+    .control-section {
+      background: var(--bg-panel);
+      border-radius: var(--radius-md);
+      border: 1px solid var(--border-subtle);
+      backdrop-filter: blur(16px);
+      overflow: visible;
+    }
+
+    .section-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.75rem 1rem;
+      cursor: pointer;
+      user-select: none;
+      transition: background 0.15s ease;
+    }
+
+    .section-header:hover {
+      background: var(--bg-section);
+    }
+
+    .section-header h2 {
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-secondary);
+    }
+
+    .section-icon {
+      width: 16px;
+      height: 16px;
+      color: var(--text-muted);
+      transition: transform 0.2s ease;
+      flex-shrink: 0;
+    }
+
+    .control-section.collapsed .section-icon {
+      transform: rotate(-90deg);
+    }
+
+    .section-content {
+      padding: 0 1rem 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.875rem;
+    }
+
+    .control-section.collapsed .section-content {
+      display: none;
+    }
+
+    .control-group {
+      display: flex;
+      flex-direction: column;
+      gap: 0.375rem;
+    }
+
+    .control-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.5rem;
+      min-width: 0;
+    }
+
+    .control-row label {
+      font-size: 0.8rem;
+      font-weight: 500;
+      color: var(--text-primary);
+      flex: 1;
+      min-width: 0;
+      white-space: normal;
+      overflow: visible;
+      text-overflow: clip;
+    }
+
+    .control-row .value {
+      font-family: var(--font-mono);
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      min-width: 5.5rem;
+      text-align: right;
+      flex-shrink: 0;
+    }
+
+    .helper-text {
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      line-height: 1.4;
+    }
+
+    input[type="color"] {
+      -webkit-appearance: none;
+      appearance: none;
+      border: none;
+      width: 100%;
+      height: 32px;
+      border-radius: 999px;
+      background: transparent;
+      cursor: pointer;
+      overflow: hidden;
+    }
+
+    input[type="color"]::-webkit-color-swatch-wrapper {
+      padding: 0;
+    }
+
+    input[type="color"]::-webkit-color-swatch {
+      border: 1px solid var(--border-subtle);
+      border-radius: 999px;
+    }
+
+    input[type="range"] {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 100%;
+      height: 6px;
+      background: var(--bg-section);
+      border-radius: 3px;
+      cursor: pointer;
+    }
+
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 14px;
+      height: 14px;
+      background: var(--text-primary);
+      border-radius: 50%;
+      cursor: pointer;
+      transition: transform 0.1s ease, box-shadow 0.1s ease;
+    }
+
+    input[type="range"]::-webkit-slider-thumb:hover {
+      transform: scale(1.15);
+      box-shadow: 0 0 8px var(--accent-glow);
+    }
+
+    input[type="range"]::-moz-range-thumb {
+      width: 14px;
+      height: 14px;
+      background: var(--text-primary);
+      border: none;
+      border-radius: 50%;
+      cursor: pointer;
+    }
+
+    .divider {
+      height: 1px;
+      background: var(--border-subtle);
+      margin: 0.25rem 0;
+    }
+
+    @media (max-width: 768px) {
+      .hero {
+        min-height: auto;
+      }
+
+      .control-panel {
+        max-height: none;
+        overflow-y: visible;
+        padding-right: 0;
+        padding-bottom: 1.5rem;
+      }
+    }
+
+    @media (max-height: 600px) {
+      .hero {
+        min-height: auto;
+      }
+
+      .control-panel {
+        max-height: none;
+        overflow-y: visible;
+        padding-right: 0;
+        padding-bottom: 1.5rem;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .hero {
+        padding-bottom: 0.5rem;
+      }
+
+      .control-row {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+
+      .control-row .value {
+        text-align: left;
+        min-width: 0;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <section class="hero">
+      <div class="hero-media">
+        <div class="hero-sim-container" data-hero-sim data-sim="lanterns"></div>
+        <div class="hero-controls-bar">
+          <button type="button" data-sim-pause>Pause</button>
+        </div>
+      </div>
+
+      <aside class="control-panel">
+        <header class="panel-header">
+          <h1>Lantern Controls</h1>
+          <p>Hover over lanterns to light them up</p>
+        </header>
+
+        <div class="control-section">
+          <div class="section-header" onclick="this.parentElement.classList.toggle('collapsed')">
+            <h2>Appearance</h2>
+            <svg class="section-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="6 9 12 15 18 9"></polyline>
+            </svg>
+          </div>
+          <div class="section-content">
+            <div class="control-group">
+              <div class="control-row">
+                <label>Bright Color</label>
+                <span class="value" data-bright-preview>#fff6a0</span>
+              </div>
+              <input type="color" data-bright-color value="#fff6a0">
+              <p class="helper-text">Warm highlight when lanterns light up</p>
+            </div>
+
+            <div class="control-group">
+              <div class="control-row">
+                <label>Glow Color</label>
+                <span class="value" data-glow-preview>#c4c47a</span>
+              </div>
+              <input type="color" data-glow-color value="#c4c47a">
+              <p class="helper-text">Emissive glow of the lantern paper</p>
+            </div>
+
+            <div class="divider"></div>
+
+            <div class="control-group">
+              <div class="control-row">
+                <label>Opacity</label>
+                <span class="value" data-opacity-value>0.90</span>
+              </div>
+              <input type="range" min="0.1" max="1" step="0.01" value="0.9" data-opacity>
+            </div>
+
+            <div class="control-group">
+              <div class="control-row">
+                <label>Metalness</label>
+                <span class="value" data-metalness-value>0.00</span>
+              </div>
+              <input type="range" min="0" max="1" step="0.01" value="0" data-metalness>
+            </div>
+
+            <div class="control-group">
+              <div class="control-row">
+                <label>Roughness</label>
+                <span class="value" data-roughness-value>0.90</span>
+              </div>
+              <input type="range" min="0" max="1" step="0.01" value="0.9" data-roughness>
+            </div>
+
+            <div class="divider"></div>
+
+            <div class="control-group">
+              <div class="control-row">
+                <label>Base Emissive</label>
+                <span class="value" data-base-emissive-value>0.30</span>
+              </div>
+              <input type="range" min="0" max="1" step="0.01" value="0.3" data-base-emissive>
+              <p class="helper-text">Glow intensity when unlit</p>
+            </div>
+
+            <div class="control-group">
+              <div class="control-row">
+                <label>Emissive Boost</label>
+                <span class="value" data-emissive-boost-value>1.00</span>
+              </div>
+              <input type="range" min="0" max="2" step="0.01" value="1" data-emissive-boost>
+              <p class="helper-text">Additional glow when lit</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="control-section">
+          <div class="section-header" onclick="this.parentElement.classList.toggle('collapsed')">
+            <h2>Patterns</h2>
+            <svg class="section-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="6 9 12 15 18 9"></polyline>
+            </svg>
+          </div>
+          <div class="section-content">
+            <div class="control-group">
+              <div class="control-row">
+                <label>Pattern Base Color</label>
+                <span class="value" data-pattern-base-preview>#ffb347</span>
+              </div>
+              <input type="color" data-pattern-base-color value="#ffb347">
+              <p class="helper-text">Main color used for lantern patterns</p>
+            </div>
+
+            <div class="control-group">
+              <div class="control-row">
+                <label>Pattern Density</label>
+                <span class="value" data-pattern-density-value>1.00</span>
+              </div>
+              <input type="range" min="0.5" max="2" step="0.05" value="1" data-pattern-density>
+              <p class="helper-text">Number of stripes / checker cells</p>
+            </div>
+
+            <div class="control-group">
+              <div class="control-row">
+                <label>Pattern Color Strength</label>
+                <span class="value" data-pattern-strength-value>1.00</span>
+              </div>
+              <input type="range" min="0" max="2" step="0.05" value="1" data-pattern-strength>
+              <p class="helper-text">How strong accent colors are vs base</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="control-section">
+          <div class="section-header" onclick="this.parentElement.classList.toggle('collapsed')">
+            <h2>Physics</h2>
+            <svg class="section-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="6 9 12 15 18 9"></polyline>
+            </svg>
+          </div>
+          <div class="section-content">
+            <div class="control-group">
+              <div class="control-row">
+                <label>Gravity</label>
+                <span class="value" data-gravity-value>-0.20</span>
+              </div>
+              <input type="range" min="-1" max="0" step="0.01" value="-0.2" data-gravity>
+              <p class="helper-text">Downward pull (negative = down)</p>
+            </div>
+
+            <div class="control-group">
+              <div class="control-row">
+                <label>Lift Strength</label>
+                <span class="value" data-lift-value>1.20</span>
+              </div>
+              <input type="range" min="0" max="3" step="0.01" value="1.2" data-lift>
+              <p class="helper-text">Upward force when buoyant</p>
+            </div>
+
+            <div class="divider"></div>
+
+            <div class="control-group">
+              <div class="control-row">
+                <label>Buoyancy Rise Rate</label>
+                <span class="value" data-buoyancy-rise-value>200.50</span>
+              </div>
+              <input type="range" min="10" max="500" step="0.5" value="200.5" data-buoyancy-rise>
+              <p class="helper-text">How fast lanterns light up on hover</p>
+            </div>
+
+            <div class="control-group">
+              <div class="control-row">
+                <label>Buoyancy Decay</label>
+                <span class="value" data-buoyancy-decay-value>0.40</span>
+              </div>
+              <input type="range" min="0.05" max="2" step="0.01" value="0.4" data-buoyancy-decay>
+              <p class="helper-text">How fast lanterns dim after hover</p>
+            </div>
+
+            <div class="divider"></div>
+
+            <div class="control-group">
+              <div class="control-row">
+                <label>Horizontal Drag</label>
+                <span class="value" data-h-drag-value>0.949</span>
+              </div>
+              <input type="range" min="0.9" max="0.999" step="0.001" value="0.949" data-h-drag>
+            </div>
+
+            <div class="control-group">
+              <div class="control-row">
+                <label>Vertical Drag</label>
+                <span class="value" data-v-drag-value>0.995</span>
+              </div>
+              <input type="range" min="0.9" max="0.999" step="0.001" value="0.995" data-v-drag>
+            </div>
+
+            <div class="control-group">
+              <div class="control-row">
+                <label>Max Vertical Speed</label>
+                <span class="value" data-max-speed-value>4.00</span>
+              </div>
+              <input type="range" min="1" max="10" step="0.1" value="4" data-max-speed>
+            </div>
+
+            <div class="control-group">
+              <div class="control-row">
+                <label>Collision Bounce</label>
+                <span class="value" data-collision-value>0.30</span>
+              </div>
+              <input type="range" min="0" max="1" step="0.01" value="0.3" data-collision>
+              <p class="helper-text">Restitution when lanterns collide</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="control-section">
+          <div class="section-header" onclick="this.parentElement.classList.toggle('collapsed')">
+            <h2>Motion</h2>
+            <svg class="section-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="6 9 12 15 18 9"></polyline>
+            </svg>
+          </div>
+          <div class="section-content">
+            <div class="control-group">
+              <div class="control-row">
+                <label>Wobble Amp X</label>
+                <span class="value" data-wobble-amp-x-value>1.00</span>
+              </div>
+              <input type="range" min="0" max="3" step="0.01" value="1" data-wobble-amp-x>
+              <p class="helper-text">Side-to-side drift amplitude</p>
+            </div>
+
+            <div class="control-group">
+              <div class="control-row">
+                <label>Wobble Amp Z</label>
+                <span class="value" data-wobble-amp-z-value>0.80</span>
+              </div>
+              <input type="range" min="0" max="3" step="0.01" value="0.8" data-wobble-amp-z>
+              <p class="helper-text">Front-to-back drift amplitude</p>
+            </div>
+
+            <div class="control-group">
+              <div class="control-row">
+                <label>Wobble Speed</label>
+                <span class="value" data-wobble-speed-value>1.00</span>
+              </div>
+              <input type="range" min="0.1" max="3" step="0.01" value="1" data-wobble-speed>
+              <p class="helper-text">Oscillation frequency</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="control-section">
+          <div class="section-header" onclick="this.parentElement.classList.toggle('collapsed')">
+            <h2>Interaction</h2>
+            <svg class="section-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="6 9 12 15 18 9"></polyline>
+            </svg>
+          </div>
+          <div class="section-content">
+            <div class="control-group">
+              <div class="control-row">
+                <label>Hover Radius</label>
+                <span class="value" data-hover-radius-value>0.30</span>
+              </div>
+              <input type="range" min="0.1" max="1" step="0.01" value="0.3" data-hover-radius>
+              <p class="helper-text">Detection area around cursor</p>
+            </div>
+
+            <div class="control-group">
+              <div class="control-row">
+                <label>Random Light Rate</label>
+                <span class="value" data-random-light-value>0.08</span>
+              </div>
+              <input type="range" min="0" max="0.5" step="0.01" value="0.08" data-random-light>
+              <p class="helper-text">Chance per second for spontaneous lighting</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="control-section">
+          <div class="section-header" onclick="this.parentElement.classList.toggle('collapsed')">
+            <h2>Scene Lighting</h2>
+            <svg class="section-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="6 9 12 15 18 9"></polyline>
+            </svg>
+          </div>
+          <div class="section-content">
+            <div class="control-group">
+              <div class="control-row">
+                <label>Ambient Intensity</label>
+                <span class="value" data-ambient-intensity-value>0.70</span>
+              </div>
+              <input type="range" min="0" max="2" step="0.01" value="0.7" data-ambient-intensity>
+              <p class="helper-text">Overall scene brightness</p>
+            </div>
+
+            <div class="control-group">
+              <div class="control-row">
+                <label>Directional Intensity</label>
+                <span class="value" data-directional-intensity-value>0.90</span>
+              </div>
+              <input type="range" min="0" max="2" step="0.01" value="0.9" data-directional-intensity>
+              <p class="helper-text">Key light strength</p>
+            </div>
+          </div>
+        </div>
+      </aside>
+    </section>
+  </main>
+
+  <script type="module" src="original_simulation.js"></script>
+</body>
+</html>

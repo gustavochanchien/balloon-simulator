@@ -16,3 +16,7 @@ An interactive, browser-based balloon swarm built with **Three.js instancing** a
   - Full-body zones (pose bounding boxes)
 - “Gamey” physics: buoyancy-driven lift + wind wobble + drag + respawn bounds
 - Runtime tuning hooks via `window.SIM`
+
+## Tech
+- Three.js (WebGL)
+- MediaPipe Tasks Vision (Pose + Hands) via CDN imports
